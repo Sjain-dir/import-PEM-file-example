@@ -1,53 +1,64 @@
 package com.example;
 
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.security.cert.CertificateFactory;
-import java.security.cert.X509Certificate;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.Signature;
+import java.security.spec.NamedParameterSpec;
+import java.nio.charset.StandardCharsets;
 
 public class App {
 
-    // Hard-coded PEM certificate location
-    private static final Path CERTIFICATE_PATH =
-            Paths.get("certificates", "certificate.pem");
-
     public static void main(String[] args) {
-        try (InputStream inputStream =
-                     Files.newInputStream(CERTIFICATE_PATH)) {
+        try {
+            // Generate a new ML-DSA-65 key pair directly in memory.
+            KeyPairGenerator keyPairGenerator =
+                    KeyPairGenerator.getInstance("ML-DSA");
 
-            CertificateFactory certificateFactory =
-                    CertificateFactory.getInstance("X.509");
+            keyPairGenerator.initialize(
+                    NamedParameterSpec.ML_DSA_65
+            );
 
-            X509Certificate certificate =
-                    (X509Certificate) certificateFactory
-                            .generateCertificate(inputStream);
+            KeyPair keyPair = keyPairGenerator.generateKeyPair();
 
-            System.out.println("Certificate loaded successfully");
-            System.out.println("Subject: "
-                    + certificate.getSubjectX500Principal());
-            System.out.println("Issuer: "
-                    + certificate.getIssuerX500Principal());
-            System.out.println("Serial number: "
-                    + certificate.getSerialNumber());
-            System.out.println("Valid from: "
-                    + certificate.getNotBefore());
-            System.out.println("Valid until: "
-                    + certificate.getNotAfter());
-            System.out.println("Signature algorithm: "
-                    + certificate.getSigAlgName());
+            PublicKey publicKey = keyPair.getPublic();
+            PrivateKey privateKey = keyPair.getPrivate();
+
+            System.out.println("ML-DSA key pair generated successfully");
             System.out.println("Public key algorithm: "
-                    + certificate.getPublicKey().getAlgorithm());
+                    + publicKey.getAlgorithm());
+            System.out.println("Public key format: "
+                    + publicKey.getFormat());
+            System.out.println("Private key algorithm: "
+                    + privateKey.getAlgorithm());
+            System.out.println("Private key format: "
+                    + privateKey.getFormat());
 
-            System.out.println("\nComplete certificate:");
-            System.out.println(certificate);
+            // Use the generated private key to sign some data.
+            byte[] data = "Hello from ML-DSA"
+                    .getBytes(StandardCharsets.UTF_8);
+
+            Signature signer = Signature.getInstance("ML-DSA");
+            signer.initSign(privateKey);
+            signer.update(data);
+
+            byte[] signature = signer.sign();
+
+            System.out.println("Signature generated");
+            System.out.println("Signature size: "
+                    + signature.length + " bytes");
+
+            // Use the generated public key to verify the signature.
+            Signature verifier = Signature.getInstance("ML-DSA");
+            verifier.initVerify(publicKey);
+            verifier.update(data);
+
+            boolean valid = verifier.verify(signature);
+
+            System.out.println("Signature valid: " + valid);
 
         } catch (Exception exception) {
-            System.err.println(
-                    "Failed to load certificate from: "
-                            + CERTIFICATE_PATH.toAbsolutePath()
-            );
             exception.printStackTrace();
         }
     }
