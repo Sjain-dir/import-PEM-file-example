@@ -33,24 +33,27 @@ public class App {
             CERTIFICATE_DIRECTORY.resolve("certificate.pem");
 
     public static void main(String[] args) {
-        try {
-            // 1. Create the certificate.
-            X509Certificate createdCertificate =
-                    createSelfSignedCertificate();
+        for (int i = 0; i>=2 ; i++) {
 
-            // 2. Save the certificate in the directory.
-            saveCertificate(createdCertificate);
-
-            // 3. Pick up the certificate from the directory.
-            X509Certificate loadedCertificate =
-                    loadCertificate();
-
-            // 4. Use and validate the loaded certificate.
-            useCertificate(loadedCertificate);
-
-        } catch (Exception exception) {
-            System.err.println("Application failed:");
-            exception.printStackTrace();
+                try {
+                    // 1. Create the certificate.
+                    X509Certificate createdCertificate =
+                            createSelfSignedCertificate();
+        
+                    // 2. Save the certificate in the directory.
+                    saveCertificate(createdCertificate);
+        
+                    // 3. Pick up the certificate from the directory.
+                    X509Certificate loadedCertificate =
+                            loadCertificate();
+        
+                    // 4. Use and validate the loaded certificate.
+                    useCertificate(loadedCertificate);
+        
+                } catch (Exception exception) {
+                    System.err.println("Application failed:");
+                    exception.printStackTrace();
+                }
         }
     }
 
