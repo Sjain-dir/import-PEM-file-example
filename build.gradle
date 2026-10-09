@@ -1,6 +1,5 @@
-plugins {
-    id 'application'
-}
+apply plugin: 'java'
+apply plugin: 'application'
 
 repositories {
     mavenCentral()
@@ -8,4 +7,14 @@ repositories {
 
 application {
     mainClass = 'com.example.App'
+
+    applicationDefaultJvmArgs = [
+        '--add-exports=java.base/sun.security.x509=ALL-UNNAMED'
+    ]
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.compilerArgs.add(
+        '--add-exports=java.base/sun.security.x509=ALL-UNNAMED'
+    )
 }
