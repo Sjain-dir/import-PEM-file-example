@@ -33,7 +33,7 @@ public class App {
             CERTIFICATE_DIRECTORY.resolve("certificate.pem");
 
     public static void main(String[] args) {
-        for (int i = 0; i>=2 ; i++) {
+        for (int i = 0; i<=2 ; i++) {
 
                 try {
                     // 1. Create the certificate.
