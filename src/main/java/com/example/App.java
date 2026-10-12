@@ -18,7 +18,7 @@ import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.SecureRandom;
 import java.security.cert.CertificateFactory;
-import java.security.cert.X509Certificate;
+import java.security.cert.Certificate;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Base64;
@@ -37,14 +37,14 @@ public class App {
 
                 try {
                     // 1. Create the certificate.
-                    X509Certificate createdCertificate =
+                    Certificate createdCertificate =
                             createSelfSignedCertificate();
         
                     // 2. Save the certificate in the directory.
                     saveCertificate(createdCertificate);
         
                     // 3. Pick up the certificate from the directory.
-                    X509Certificate loadedCertificate =
+                    Certificate loadedCertificate =
                             loadCertificate();
         
                     // 4. Use and validate the loaded certificate.
@@ -57,7 +57,7 @@ public class App {
         }
     }
 
-    private static X509Certificate createSelfSignedCertificate()
+    private static Certificate createSelfSignedCertificate()
             throws Exception {
 
         /*
@@ -132,7 +132,7 @@ public class App {
                 )
         );
 
-        X509Certificate certificate =
+        Certificate certificate =
                 X509CertImpl.newSigned(
                         certificateInfo,
                         keyPair.getPrivate(),
@@ -147,7 +147,7 @@ public class App {
     }
 
     private static void saveCertificate(
-            X509Certificate certificate
+            Certificate certificate
     ) throws Exception {
 
         Files.createDirectories(
@@ -170,7 +170,7 @@ public class App {
         );
     }
 
-    private static X509Certificate loadCertificate()
+    private static Certificate loadCertificate()
             throws Exception {
 
         try (InputStream inputStream =
@@ -179,8 +179,8 @@ public class App {
             CertificateFactory certificateFactory =
                     CertificateFactory.getInstance("X.509");
 
-            X509Certificate certificate =
-                    (X509Certificate) certificateFactory
+            Certificate certificate =
+                    (Certificate) certificateFactory
                             .generateCertificate(inputStream);
 
             System.out.println(
@@ -192,11 +192,11 @@ public class App {
     }
 
     private static void useCertificate(
-            X509Certificate certificate
+            Certificate certificate
     ) throws Exception {
 
-        // Check whether the certificate is currently valid.
-        certificate.checkValidity();
+        // // Check whether the certificate is currently valid.
+        // certificate.checkValidity();
 
         // Verify that the certificate is self-signed.
         certificate.verify(
@@ -211,35 +211,35 @@ public class App {
         System.out.println("Certificate information");
         System.out.println("-----------------------");
 
-        System.out.println(
-                "Subject: "
-                        + certificate.getSubjectX500Principal()
-        );
+        // System.out.println(
+        //         "Subject: "
+        //                 + certificate.getSubjectX500Principal()
+        // );
 
-        System.out.println(
-                "Issuer: "
-                        + certificate.getIssuerX500Principal()
-        );
+        // System.out.println(
+        //         "Issuer: "
+        //                 + certificate.getIssuerX500Principal()
+        // );
 
-        System.out.println(
-                "Serial number: "
-                        + certificate.getSerialNumber()
-        );
+        // System.out.println(
+        //         "Serial number: "
+        //                 + certificate.getSerialNumber()
+        // );
 
-        System.out.println(
-                "Valid from: "
-                        + certificate.getNotBefore()
-        );
+        // System.out.println(
+        //         "Valid from: "
+        //                 + certificate.getNotBefore()
+        // );
 
-        System.out.println(
-                "Valid until: "
-                        + certificate.getNotAfter()
-        );
+        // System.out.println(
+        //         "Valid until: "
+        //                 + certificate.getNotAfter()
+        // );
 
-        System.out.println(
-                "Signature algorithm: "
-                        + certificate.getSigAlgName()
-        );
+        // System.out.println(
+        //         "Signature algorithm: "
+        //                 + certificate.getSigAlgName()
+        // );
 
         System.out.println(
                 "Public-key algorithm: "
