@@ -1,12 +1,12 @@
 package com.example;
 
-import sun.security.x509.CertificateSerialNumber;
-import sun.security.x509.CertificateValidity;
-import sun.security.x509.CertificateVersion;
-import sun.security.x509.CertificateX509Key;
-import sun.security.x509.X500Name;
-import sun.security.x509.X509CertImpl;
-import sun.security.x509.X509CertInfo;
+import org.bouncycastle.asn1.x500.X500Name;
+import org.bouncycastle.cert.X509CertificateHolder;
+import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
+import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.operator.ContentSigner;
+import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 
 import java.io.InputStream;
 import java.math.BigInteger;
@@ -17,8 +17,9 @@ import java.nio.file.Paths;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.SecureRandom;
+import java.security.Security;
 import java.security.cert.CertificateFactory;
-import java.security.cert.Certificate;
+import java.security.cert.X509Certificate;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Base64;
@@ -33,38 +34,32 @@ public class App {
             CERTIFICATE_DIRECTORY.resolve("certificate.pem");
 
     public static void main(String[] args) {
-        for (int i = 0; i<=2 ; i++) {
+        try {
+            Security.addProvider(new BouncyCastleProvider());
 
-                try {
-                    // 1. Create the certificate.
-                    Certificate createdCertificate =
-                            createSelfSignedCertificate();
-        
-                    // 2. Save the certificate in the directory.
-                    saveCertificate(createdCertificate);
-        
-                    // 3. Pick up the certificate from the directory.
-                    Certificate loadedCertificate =
-                            loadCertificate();
-        
-                    // 4. Use and validate the loaded certificate.
-                    useCertificate(loadedCertificate);
-        
-                } catch (Exception exception) {
-                    System.err.println("Application failed:");
-                    exception.printStackTrace();
-                }
+            // 1. Create a self-signed X.509 certificate.
+            X509Certificate createdCertificate =
+                    createSelfSignedCertificate();
+
+            // 2. Save the certificate in the directory.
+            saveCertificate(createdCertificate);
+
+            // 3. Pick up the certificate from the directory.
+            X509Certificate loadedCertificate =
+                    loadCertificate();
+
+            // 4. Use and validate the loaded certificate.
+            useCertificate(loadedCertificate);
+
+        } catch (Exception exception) {
+            System.err.println("Application failed:");
+            exception.printStackTrace();
         }
     }
 
-    private static Certificate createSelfSignedCertificate()
+    private static X509Certificate createSelfSignedCertificate()
             throws Exception {
 
-        /*
-         * A certificate must contain a public key and must be signed.
-         * Therefore, an RSA key pair is generated as part of certificate
-         * creation. It is not saved to disk.
-         */
         KeyPairGenerator keyPairGenerator =
                 KeyPairGenerator.getInstance("RSA");
 
@@ -83,9 +78,6 @@ public class App {
                 now.plus(365, ChronoUnit.DAYS)
         );
 
-        CertificateValidity validity =
-                new CertificateValidity(validFrom, validUntil);
-
         BigInteger serialNumber =
                 new BigInteger(
                         128,
@@ -94,50 +86,35 @@ public class App {
 
         X500Name certificateOwner = new X500Name(
                 "CN=Test Certificate,"
-                        + " OU=Development,"
-                        + " O=Example,"
-                        + " C=IN"
+                        + "OU=Development,"
+                        + "O=Example,"
+                        + "C=IN"
         );
 
-        X509CertInfo certificateInfo =
-                new X509CertInfo();
-
-        certificateInfo.setVersion(
-                new CertificateVersion(
-                        CertificateVersion.V3
-                )
-        );
-
-        certificateInfo.setSerialNumber(
-                new CertificateSerialNumber(
-                        serialNumber
-                )
-        );
-
-        certificateInfo.setSubject(
-                certificateOwner
-        );
-
-        certificateInfo.setIssuer(
-                certificateOwner
-        );
-
-        certificateInfo.setValidity(
-                validity
-        );
-
-        certificateInfo.setKey(
-                new CertificateX509Key(
+        JcaX509v3CertificateBuilder certificateBuilder =
+                new JcaX509v3CertificateBuilder(
+                        certificateOwner,
+                        serialNumber,
+                        validFrom,
+                        validUntil,
+                        certificateOwner,
                         keyPair.getPublic()
-                )
-        );
-
-        Certificate certificate =
-                X509CertImpl.newSigned(
-                        certificateInfo,
-                        keyPair.getPrivate(),
-                        "SHA256withRSA"
                 );
+
+        ContentSigner contentSigner =
+                new JcaContentSignerBuilder(
+                        "SHA256withRSA"
+                )
+                        .setProvider("BC")
+                        .build(keyPair.getPrivate());
+
+        X509CertificateHolder certificateHolder =
+                certificateBuilder.build(contentSigner);
+
+        X509Certificate certificate =
+                new JcaX509CertificateConverter()
+                        .setProvider("BC")
+                        .getCertificate(certificateHolder);
 
         System.out.println(
                 "1. Self-signed certificate created"
@@ -147,16 +124,15 @@ public class App {
     }
 
     private static void saveCertificate(
-            Certificate certificate
+            X509Certificate certificate
     ) throws Exception {
 
         Files.createDirectories(
                 CERTIFICATE_DIRECTORY
         );
 
-        String pemCertificate = convertToPem(
-                certificate.getEncoded()
-        );
+        String pemCertificate =
+                convertToPem(certificate.getEncoded());
 
         Files.writeString(
                 CERTIFICATE_PATH,
@@ -170,7 +146,7 @@ public class App {
         );
     }
 
-    private static Certificate loadCertificate()
+    private static X509Certificate loadCertificate()
             throws Exception {
 
         try (InputStream inputStream =
@@ -179,8 +155,8 @@ public class App {
             CertificateFactory certificateFactory =
                     CertificateFactory.getInstance("X.509");
 
-            Certificate certificate =
-                    (Certificate) certificateFactory
+            X509Certificate certificate =
+                    (X509Certificate) certificateFactory
                             .generateCertificate(inputStream);
 
             System.out.println(
@@ -192,54 +168,52 @@ public class App {
     }
 
     private static void useCertificate(
-            Certificate certificate
+            X509Certificate certificate
     ) throws Exception {
 
-        // // Check whether the certificate is currently valid.
-        // certificate.checkValidity();
+        // Check whether the certificate is currently valid.
+        certificate.checkValidity();
 
         // Verify that the certificate is self-signed.
-        certificate.verify(
-                certificate.getPublicKey()
-        );
+        certificate.verify(certificate.getPublicKey());
 
         System.out.println(
-                "4. Certificate validated successfully"
+                "4. Certificate used and validated successfully"
         );
 
         System.out.println();
         System.out.println("Certificate information");
         System.out.println("-----------------------");
 
-        // System.out.println(
-        //         "Subject: "
-        //                 + certificate.getSubjectX500Principal()
-        // );
+        System.out.println(
+                "Subject: "
+                        + certificate.getSubjectX500Principal()
+        );
 
-        // System.out.println(
-        //         "Issuer: "
-        //                 + certificate.getIssuerX500Principal()
-        // );
+        System.out.println(
+                "Issuer: "
+                        + certificate.getIssuerX500Principal()
+        );
 
-        // System.out.println(
-        //         "Serial number: "
-        //                 + certificate.getSerialNumber()
-        // );
+        System.out.println(
+                "Serial number: "
+                        + certificate.getSerialNumber()
+        );
 
-        // System.out.println(
-        //         "Valid from: "
-        //                 + certificate.getNotBefore()
-        // );
+        System.out.println(
+                "Valid from: "
+                        + certificate.getNotBefore()
+        );
 
-        // System.out.println(
-        //         "Valid until: "
-        //                 + certificate.getNotAfter()
-        // );
+        System.out.println(
+                "Valid until: "
+                        + certificate.getNotAfter()
+        );
 
-        // System.out.println(
-        //         "Signature algorithm: "
-        //                 + certificate.getSigAlgName()
-        // );
+        System.out.println(
+                "Signature algorithm: "
+                        + certificate.getSigAlgName()
+        );
 
         System.out.println(
                 "Public-key algorithm: "

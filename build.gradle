@@ -5,16 +5,11 @@ repositories {
     mavenCentral()
 }
 
-application {
-    mainClass = 'com.example.App'
-
-    applicationDefaultJvmArgs = [
-        '--add-exports=java.base/sun.security.x509=ALL-UNNAMED'
-    ]
+dependencies {
+    implementation 'org.bouncycastle:bcprov-jdk18on:1.86'
+    implementation 'org.bouncycastle:bcpkix-jdk18on:1.86'
 }
 
-tasks.withType(JavaCompile).configureEach {
-    options.compilerArgs.add(
-        '--add-exports=java.base/sun.security.x509=ALL-UNNAMED'
-    )
+application {
+    mainClass = 'com.example.App'
 }
