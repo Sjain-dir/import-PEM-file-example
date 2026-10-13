@@ -8,6 +8,10 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.operator.ContentSigner;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 
+import java.security.AlgorithmParameterGenerator;
+import java.security.AlgorithmParameters;
+import javax.crypto.spec.DHParameterSpec;
+
 import java.io.InputStream;
 import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
@@ -34,28 +38,68 @@ public class App {
             CERTIFICATE_DIRECTORY.resolve("certificate.pem");
 
     public static void main(String[] args) {
-        try {
-            Security.addProvider(new BouncyCastleProvider());
+    try {
+        // Exercise AlgorithmParameterGenerator.getInstance().
+        generateAlgorithmParameters();
 
-            // 1. Create a self-signed X.509 certificate.
-            X509Certificate createdCertificate =
-                    createSelfSignedCertificate();
+        // 1. Create a self-signed X.509 certificate.
+        X509Certificate createdCertificate =
+                createSelfSignedCertificate();
 
-            // 2. Save the certificate in the directory.
-            saveCertificate(createdCertificate);
+        // 2. Save the certificate.
+        saveCertificate(createdCertificate);
 
-            // 3. Pick up the certificate from the directory.
-            X509Certificate loadedCertificate =
-                    loadCertificate();
+        // 3. Load the certificate.
+        X509Certificate loadedCertificate =
+                loadCertificate();
 
-            // 4. Use and validate the loaded certificate.
-            useCertificate(loadedCertificate);
+        // 4. Use and validate the certificate.
+        useCertificate(loadedCertificate);
 
-        } catch (Exception exception) {
-            System.err.println("Application failed:");
-            exception.printStackTrace();
-        }
+    } catch (Exception exception) {
+        System.err.println("Application failed:");
+        exception.printStackTrace();
     }
+}
+
+private static void generateAlgorithmParameters()
+        throws Exception {
+
+    AlgorithmParameterGenerator parameterGenerator =
+            AlgorithmParameterGenerator.getInstance(
+                    "DiffieHellman"
+            );
+
+    parameterGenerator.init(2048);
+
+    AlgorithmParameters algorithmParameters =
+            parameterGenerator.generateParameters();
+
+    DHParameterSpec parameterSpec =
+            algorithmParameters.getParameterSpec(
+                    DHParameterSpec.class
+            );
+
+    System.out.println(
+            "Algorithm parameters generated successfully"
+    );
+
+    System.out.println(
+            "Algorithm: "
+                    + algorithmParameters.getAlgorithm()
+    );
+
+    System.out.println(
+            "Prime size: "
+                    + parameterSpec.getP().bitLength()
+                    + " bits"
+    );
+
+    System.out.println(
+            "Generator: "
+                    + parameterSpec.getG()
+    );
+}
 
     private static X509Certificate createSelfSignedCertificate()
             throws Exception {
